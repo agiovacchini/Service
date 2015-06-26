@@ -1,0 +1,35 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Cppcheck - HTML report - PromoCalculator</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+
+    </style>
+  </head>
+  <body>
+    <div id="page">
+      <div id="header">
+        <h1>Cppcheck report - PromoCalculator</h1>
+      </div>
+      <div id="menu">
+        <a href="index.html">Defect list</a>
+      </div>
+      <div id="content">
+<table><tr><th>Line</th><th>Id</th><th>Severity</th><th>Message</th></tr><tr><td colspan='4'><a href='6.html'>/usr/local/include/boost/mpl/aux_/integral_wrapper.hpp</a></td></tr><tr><td><a href='6.html#line-72'>72</a></td><td>syntaxError</td><td>error</td><td class="error">syntax error</td></tr><tr><td colspan='4'><a href='7.html'>/usr/local/include/boost/type_traits/has_new_operator.hpp</a></td></tr><tr><td><a href='7.html#line-110'>110</a></td><td>sizeofCalculation</td><td>style</td><td >Found calculation inside sizeof().</td></tr><tr><td><a href='7.html#line-111'>111</a></td><td>sizeofCalculation</td><td>style</td><td >Found calculation inside sizeof().</td></tr><tr><td><a href='7.html#line-112'>112</a></td><td>sizeofCalculation</td><td>style</td><td >Found calculation inside sizeof().</td></tr><tr><td><a href='7.html#line-113'>113</a></td><td>sizeofCalculation</td><td>style</td><td >Found calculation inside sizeof().</td></tr><tr><td><a href='7.html#line-114'>114</a></td><td>sizeofCalculation</td><td>style</td><td >Found calculation inside sizeof().</td></tr><tr><td><a href='7.html#line-115'>115</a></td><td>sizeofCalculation</td><td>style</td><td >Found calculation inside sizeof().</td></tr><tr><td colspan='4'><a href='10.html'>*</a></td></tr><tr><td><a href='10.html#line-0'>0</a></td><td>unmatchedSuppression</td><td>style</td><td >Unmatched suppression: missingIncludeSystem</td></tr><tr><td colspan='4'><a href='5.html'>/usr/local/include/boost/lexical_cast.hpp</a></td></tr><tr><td><a href='5.html#line-75'>75</a></td><td>class_X_Y</td><td>style</td><td >The code 'class BOOST_SYMBOL_VISIBLE bad_lexical_cast :' is not handled. You can use -I or --include to add handling of this code.</td></tr><tr><td colspan='4'><a href='0.html'>Department.cpp</a></td></tr><tr><td><a href='0.html#line-16'>16</a></td><td>useInitializationList</td><td>style</td><td >When an object of a class is created, the constructors of all member variables are called consecutively in the order the variables are declared, even if you don't explicitly write them to the initialization list. You could avoid assigning 'description' a value by passing the value to the constructor in the initialization list.</td></tr><tr><td><a href='0.html#line-23'>23</a></td><td>useInitializationList</td><td>style</td><td >When an object of a class is created, the constructors of all member variables are called consecutively in the order the variables are declared, even if you don't explicitly write them to the initialization list. You could avoid assigning 'description' a value by passing the value to the constructor in the initialization list.</td></tr><tr><td colspan='4'><a href='4.html'>/usr/local/include/boost/asio/impl/io_service.hpp</a></td></tr><tr><td><a href='4.html#line-30'>30</a></td><td>constStatement</td><td>style</td><td >Redundant code: Found a statement that begins with numeric constant.</td></tr><tr><td><a href='4.html#line-47'>47</a></td><td>constStatement</td><td>style</td><td >Redundant code: Found a statement that begins with numeric constant.</td></tr><tr><td><a href='4.html#line-57'>57</a></td><td>constStatement</td><td>style</td><td >Redundant code: Found a statement that begins with numeric constant.</td></tr><tr><td colspan='4'><a href='3.html'>/usr/local/include/boost/asio/detail/timer_queue.hpp</a></td></tr><tr><td><a href='3.html#line-50'>50</a></td><td>uninitMemberVar</td><td>style</td><td >Member variable 'per_timer_data::heap_index_' is not initialized in the constructor.</td></tr><tr><td colspan='4'><a href='2.html'>/usr/local/include/boost/asio/buffers_iterator.hpp</a></td></tr><tr><td><a href='2.html#line-62'>62</a></td><td>syntaxError</td><td>error</td><td class="error">syntax error</td></tr><tr><td colspan='4'><a href='1.html'>Item.cpp</a></td></tr><tr><td><a href='1.html#line-15'>15</a></td><td>useInitializationList</td><td>style</td><td >When an object of a class is created, the constructors of all member variables are called consecutively in the order the variables are declared, even if you don't explicitly write them to the initialization list. You could avoid assigning 'description' a value by passing the value to the constructor in the initialization list.</td></tr><tr><td colspan='4'><a href='8.html'>/usr/local/include/boost/type_traits/type_with_alignment.hpp</a></td></tr><tr><td><a href='8.html#line-195'>195</a></td><td>noConstructor</td><td>style</td><td >The class 'type_with_alignment_imp' does not have a constructor although it has private member variables. Member variables of builtin types are left uninitialized when the class is instantiated. That may cause bugs or undefined behavior.</td></tr><tr><td colspan='4'><a href='9.html'>/usr/local/include/boost/noncopyable.hpp</a></td></tr><tr><td><a href='9.html#line-35'>35</a></td><td>operatorEq</td><td>style</td><td >'noncopyable::operator=' should return 'noncopyable &'.</td></tr><tr><td><a href='9.html#line-35'>35</a></td><td>passedByValue</td><td>style</td><td >Parameter 'noncopyable' is passed by value. It could be passed as a (const) reference which is usually faster and recommended in C++.</td></tr></table>
+      </div>
+      <div id="footer">
+        <p>
+          Cppcheck - a tool for static C/C++ code analysis
+        </p>
+        <ul>
+          <li>Internet: <a href="http://cppcheck.sourceforge.net">http://cppcheck.sourceforge.net</a></li>
+          <li>Forum: <a href="http://apps.sourceforge.net/phpbb/cppcheck/">http://apps.sourceforge.net/phpbb/cppcheck/</a></li>
+          <li>IRC: #cppcheck at irc.freenode.net</li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

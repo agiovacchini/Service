@@ -1,0 +1,140 @@
+//
+//  main.cpp
+//  PromoCalculator
+//
+//  Created by Andrea Giovacchini on 04/01/14.
+//  Copyright (c) 2014 Andrea Giovacchini. All rights reserved.
+//
+#include "BaseTypes.h"
+
+#include <cstdlib>
+#include <iostream>
+#include <string>
+//#include <thread>
+#include <sstream>
+#include <csignal>
+#include <boost/asio.hpp>
+#include <boost/thread.hpp>
+#include <boost/bind.hpp>
+#include <boost/lexical_cast.hpp>
+#include "server.hpp"
+
+
+//#include "gmock/gmock.h"
+
+#include "BaseSystem.h"
+
+#if defined _WIN32
+	#include <windows.h>
+	#include <tchar.h>
+	#include <strsafe.h>
+	#pragma comment(lib, "advapi32.lib")
+
+	#define SVCNAME TEXT("PromoCalculator")
+	#define SVC_ERROR                        ((DWORD)0xC0020001L)
+	SERVICE_STATUS          gSvcStatus; 
+	SERVICE_STATUS_HANDLE   gSvcStatusHandle; 
+	HANDLE                  ghSvcStopEvent = NULL;
+
+	TCHAR szCommand[10];
+	TCHAR szSvcName[80];
+
+	SC_HANDLE schSCManager;
+	SC_HANDLE schService;
+
+	VOID SvcInstall(void);
+
+	VOID WINAPI SvcCtrlHandler( DWORD ); 
+	VOID WINAPI SvcMain( DWORD, LPTSTR * ); 
+
+	VOID ReportSvcStatus( DWORD, DWORD, DWORD );
+	VOID SvcInit( DWORD, LPTSTR * ); 
+	VOID SvcReportEvent( LPTSTR );
+	
+#endif 
+
+using namespace std;
+
+const int max_length = 1024;
+
+string mainPath = "" ;
+string iniFileName = "" ;
+src::severity_logger_mt< boost::log::trivial::severity_level > my_logger_main;
+
+void init(string pMainPath, string pIniFileName)
+{
+    logging::add_file_log
+    (
+     keywords::file_name = pMainPath + "LOGS/PromoCalculator_%N.log",
+     keywords::auto_flush = true, 
+     // This makes the sink to write log records that look like this:
+     // YYYY-MM-DD HH:MI:SS: <normal> A normal severity message
+     // YYYY-MM-DD HH:MI:SS: <error> An error severity message
+     keywords::format =
+     (
+      expr::stream
+      << expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y-%m-%d %H:%M:%S")
+      << ": <" << logging::trivial::severity
+      << "> " << expr::smessage
+      )
+     );
+
+    logging::add_common_attributes();
+	src::severity_logger_mt< boost::log::trivial::severity_level > my_logger_ma;
+}
+
+
+int main(int argc, char* argv[])
+{
+    try
+    {
+        // Check command line arguments.
+        if (argc != 3)
+        {
+            std::cerr << "Usage: promoCalculator rootPath iniFileName" << std::endl ;
+            return 1;
+        }
+        
+        mainPath = argv[1] ;
+        iniFileName = argv[2] ;
+
+        std::cout << mainPath << endl;
+        init(mainPath, iniFileName);
+        
+        logging::add_common_attributes();
+
+        BaseSystem bs = BaseSystem(mainPath, iniFileName);
+		bs.dumpItemArchive("BRUCIA");
+        // Run server in background thread.
+        std::size_t num_threads = boost::lexical_cast<std::size_t>(bs.getConfigValue("WebThreads").c_str());
+        http::server3::server s(bs.getConfigValue("WebAddress").c_str(), bs.getConfigValue("WebPort").c_str(), mainPath + "/DocRoot/", num_threads, bs);
+        boost::thread t(boost::bind(&http::server3::server::run, &s));
+        BOOST_LOG_SEV(my_logger_main, lt::info) << "- MA - " << "Started http server" ;
+        
+        
+        std::string pidFileName = mainPath + "/promoCalculator.pid" ;
+        std::ofstream pidFile ;
+        pidFile.open( pidFileName );
+        pidFile << _getpid() << std::endl ;
+        pidFile.close() ;
+        
+        std::cout << "Started with pid: " << _getpid() << std::endl ;
+        
+		BOOST_LOG_SEV(my_logger_main, lt::info) << "- MA - " << "Received stop request";
+		BOOST_LOG_SEV(my_logger_main, lt::info) << "- MA - " << "Finished processing stop request";
+
+		while (0 != 1)
+		{
+			Sleep(1000);
+		}
+        std::cout << "Process exit " << fileDelete(pidFileName) << std::endl ;
+    }
+    catch (std::exception& e)
+    {
+        std::cerr << "exception: " << e.what() << "\n";
+    }
+    
+
+    return 0;
+}
+

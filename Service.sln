@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Service", "PromoCalculator.vcxproj", "{A7680553-8FD3-4FE7-8732-F0DABF35C384}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Prova|Win32 = Prova|Win32
+		Prova|x64 = Prova|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A7680553-8FD3-4FE7-8732-F0DABF35C384}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A7680553-8FD3-4FE7-8732-F0DABF35C384}.Debug|Win32.Build.0 = Debug|Win32
+		{A7680553-8FD3-4FE7-8732-F0DABF35C384}.Debug|x64.ActiveCfg = Debug|x64
+		{A7680553-8FD3-4FE7-8732-F0DABF35C384}.Debug|x64.Build.0 = Debug|x64
+		{A7680553-8FD3-4FE7-8732-F0DABF35C384}.Prova|Win32.ActiveCfg = Prova|Win32
+		{A7680553-8FD3-4FE7-8732-F0DABF35C384}.Prova|Win32.Build.0 = Prova|Win32
+		{A7680553-8FD3-4FE7-8732-F0DABF35C384}.Prova|x64.ActiveCfg = Prova|x64
+		{A7680553-8FD3-4FE7-8732-F0DABF35C384}.Prova|x64.Build.0 = Prova|x64
+		{A7680553-8FD3-4FE7-8732-F0DABF35C384}.Release|Win32.ActiveCfg = Release|x64
+		{A7680553-8FD3-4FE7-8732-F0DABF35C384}.Release|Win32.Build.0 = Release|x64
+		{A7680553-8FD3-4FE7-8732-F0DABF35C384}.Release|x64.ActiveCfg = Release|x64
+		{A7680553-8FD3-4FE7-8732-F0DABF35C384}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

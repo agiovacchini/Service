@@ -1,0 +1,7 @@
+*.o
+*.exe
+*.log
+*.sdf
+.DS_Store
+Debug/
+Release/

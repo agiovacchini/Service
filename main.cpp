@@ -17,6 +17,9 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 #if defined _WIN32
 	#include <windows.h>
@@ -24,7 +27,6 @@
 	#include <strsafe.h>
 	#pragma comment(lib, "advapi32.lib")
 
-	#define SVCNAME TEXT("ServiceTest")
 	#define SVC_ERROR                        ((DWORD)0xC0020001L)
 	#define BUFSIZE 4096
 	SERVICE_STATUS          gSvcStatus; 
@@ -37,7 +39,7 @@
 	SC_HANDLE schSCManager;
 	SC_HANDLE schService;
 
-	VOID SvcInstall(void);
+	VOID SvcInstall();
 
 	VOID WINAPI SvcCtrlHandler( DWORD ); 
 	VOID WINAPI SvcMain( DWORD, LPTSTR * ); 
@@ -55,6 +57,7 @@ const int max_length = 1024;
 std::map <string, string> configurationMap ;
 
 string mainPath = "" ;
+string logsPath = "";
 string iniFileName = "";
 string myName = "";
 
@@ -69,20 +72,27 @@ long setConfigValue(string confMapKey, string treeSearchKey, boost::property_tre
 
 void init(string pMainPath, string pIniFileName)
 {
-	std::cout << "Init";
+	std::cout << "Init - Start " << pMainPath << " - " << pIniFileName << std::endl;
 	
     long rc = 0 ;
-	
 	boost::property_tree::ptree pt;
-    boost::property_tree::ini_parser::read_ini(pMainPath + pIniFileName, pt);
+
+	fs::path dir(pMainPath);
+	fs::path file(pIniFileName);
+	fs::path full_path = dir / file;
+
+	std::cout << "Path: " << full_path.string() << std::endl;
+    boost::property_tree::ini_parser::read_ini(full_path.string(), pt);
 	
 	rc = rc + setConfigValue("ServiceName", "Service.Name", &pt );
 
 	// DWORD size = GetModuleFileNameA(NULL, myName, MAX_PATH);
 	myName = configurationMap["ServiceName"];
-
+	//std::cout << "Init - 1\n";
 	fileDelete(mainPath + "/LOGS/" + myName + ".log.prev");
+	//std::cout << "Init - 2\n";
 	fileMove(mainPath + "/LOGS/" + myName + ".log", mainPath + "LOGS/" + myName + ".log.prev");
+	//std::cout << "Init - 3\n";
 
     logging::add_file_log
     (
@@ -99,6 +109,7 @@ void init(string pMainPath, string pIniFileName)
       << "> " << expr::smessage
       )
      );
+	//std::cout << "Init - 4\n";
 
 #if !defined(_WIN32)
 
@@ -108,109 +119,30 @@ void init(string pMainPath, string pIniFileName)
     sigset_t old_mask;
     pthread_sigmask(SIG_BLOCK, &new_mask, &old_mask);
 #endif
+	//std::cout << "Init - 5\n";
 		
 
     logging::add_common_attributes();
 	src::severity_logger_mt< boost::log::trivial::severity_level > my_logger_ma;
 
+	//std::cout << "Init - 5\n";
 	BOOST_LOG_SEV(my_logger_ma, lt::info) << "- init - Config file: " << pMainPath << pIniFileName ;
     BOOST_LOG_SEV(my_logger_ma, lt::info) << "- init - Config load start" ;
     
     try {
 		rc = rc + setConfigValue("LineToLaunchExecutable", "LineToLaunch.Executable", &pt );
+		rc = rc + setConfigValue("LineToLaunchOptions", "LineToLaunch.Options", &pt);
+		std::cout << "Executable: " << configurationMap["LineToLaunchExecutable"] << std::endl;
+		std::cout << "Parameters: " << configurationMap["LineToLaunchOptions"] << std::endl;
 	}
 	catch (std::exception const& e)
     {
         BOOST_LOG_SEV(my_logger_ma, lt::fatal) << "- init - Config error: " << e.what() ;
     }
+	std::cout << "Init - End";
 
 }
 
-#if !defined(_WIN32)
-	#include <pthread.h>
-	#include <signal.h>
-
-int main(int argc, char* argv[])
-{
-    try
-    {
-        // Check command line arguments.
-        if (argc != 3)
-        {
-            std::cerr << "Usage: Service rootPath iniFileName" << std::endl ;
-            return 1;
-        }
-        
-        mainPath = argv[1] ;
-        iniFileName = argv[2] ;
-
-        init(mainPath, iniFileName);
-        
-        sigset_t new_mask;
-        sigfillset(&new_mask);
-        sigset_t old_mask;
-        pthread_sigmask(SIG_BLOCK, &new_mask, &old_mask);
-        
-        logging::add_common_attributes();
-
-        BaseSystem bs = BaseSystem(mainPath, iniFileName);
-        
-        // Run server in background thread.
-        std::size_t num_threads = boost::lexical_cast<std::size_t>(bs.getConfigValue("WebThreads").c_str());
-        http::server3::server s(bs.getConfigValue("WebAddress").c_str(), bs.getConfigValue("WebPort").c_str(), mainPath + "/DocRoot/", num_threads, bs);
-        boost::thread t(boost::bind(&http::server3::server::run, &s));
-        
-        BOOST_LOG_SEV(my_logger_main, lt::info) << "- MA - " << "Started http server" ;
-        
-        
-        std::string pidFileName = mainPath + "/" + myName.pid ;
-        std::ofstream pidFile ;
-        pidFile.open( pidFileName );
-        pidFile << getpid() << std::endl ;
-        pidFile.close() ;
-        
-        std::cout << "Started with pid: " << getpid() << std::endl ;
-        
-        // Wait for signal indicating time to shut down.
-        sigset_t wait_mask;
-        sigemptyset(&wait_mask);
-        sigaddset(&wait_mask, SIGINT);
-        sigaddset(&wait_mask, SIGQUIT);
-        sigaddset(&wait_mask, SIGTERM);
-        pthread_sigmask(SIG_BLOCK, &wait_mask, 0);
-        int sig = 0;
-        sigwait(&wait_mask, &sig);
-		BOOST_LOG_SEV(my_logger_main, lt::info) << "- MA - " << "Received stop request";
-        s.stop();
-        t.join();
-		BOOST_LOG_SEV(my_logger_main, lt::info) << "- MA - " << "Finished processing stop request";
-        std::cout << "Process exit " << fileDelete(pidFileName) << std::endl ;
-    }
-    catch (std::exception& e)
-    {
-        std::cerr << "exception: " << e.what() << "\n";
-    }
-    
-    return 0;
-}
-
-#endif // !defined(_WIN32)
-
-/*
-#if !defined _WIN32
-int main(int argc, const char * argv[])
-{
-    mainPath = argv[1] ;
-
-	init(mainPath);
-    logging::add_common_attributes();
-
-    BaseSystem bs = BaseSystem(mainPath);
-
-	return 0;
-}
-#endif
-*/
 
 #if defined _WIN32
 int __cdecl _tmain(int argc, TCHAR *argv[]) 
@@ -229,19 +161,27 @@ int __cdecl _tmain(int argc, TCHAR *argv[])
      http://stackoverflow.com/questions/6006319/converting-tchar-to-string-in-c
 	 */
 
-	mainPath = argv[1] ;
-	iniFileName = argv[2];
-	std::cout << "mainPath: " << mainPath << ", iniFileName: " << iniFileName;
+
     if( lstrcmpi( argv[1], TEXT("install")) == 0 )
     {
+		mainPath = argv[2];
+		iniFileName = argv[3];
+		init(mainPath, iniFileName);
+		std::cout << "mainPath: " << mainPath << ", iniFileName: " << iniFileName;
+		BOOST_LOG_SEV(my_logger_main, lt::info) << "mainPath: " << mainPath << ", iniFileName: " << iniFileName;
         SvcInstall();
         return 0;
     }
+	else
+	{
+		mainPath = argv[1];
+		iniFileName = argv[2];
+	}
 
     // TO_DO: Add any additional services for the process to this table.
     SERVICE_TABLE_ENTRY DispatchTable[] = 
     { 
-        { SVCNAME, (LPSERVICE_MAIN_FUNCTION) SvcMain }, 
+        { const_cast<LPSTR>(myName.c_str()), (LPSERVICE_MAIN_FUNCTION) SvcMain },
         { NULL, NULL } 
     }; 
  
@@ -267,20 +207,20 @@ int __cdecl _tmain(int argc, TCHAR *argv[])
 //
 VOID SvcInstall()
 {
-	std::cout << "InstSvc1";
+	//std::cout << "InstSvc1: " << SVCNAME << std::endl;
     SC_HANDLE schSCManager;
     SC_HANDLE schService;
     TCHAR szPath[MAX_PATH];
 
     if( !GetModuleFileName( NULL, szPath, MAX_PATH ) )
     {
-        printf("Cannot install service (%d)\n", GetLastError());
+        std::cout << "Cannot install service (" << GetLastError() << ")" << std::endl;
         return;
     }
 
     // Get a handle to the SCM database. 
 
-	std::cout << "InstSvc2";
+	//std::cout << "InstSvc2\n" ;
     schSCManager = OpenSCManager( 
         NULL,                    // local computer
         NULL,                    // ServicesActive database 
@@ -288,36 +228,36 @@ VOID SvcInstall()
  
     if (NULL == schSCManager) 
     {
-        printf("OpenSCManager failed (%d)\n", GetLastError());
+		std::cout << "OpenSCManager failed (" << GetLastError() << ")" << std::endl;
         return;
     }
 
     // Create the service
 
-	std::cout << "InstSvc3";
+	//std::cout << "InstSvc3\n" ;
     schService = CreateService( 
         schSCManager,              // SCM database 
-        SVCNAME,                   // name of service 
-        SVCNAME,                   // service name to display 
+		myName.c_str(),                   // name of service 
+		myName.c_str(),                   // service name to display 
         SERVICE_ALL_ACCESS,        // desired access 
         SERVICE_WIN32_OWN_PROCESS, // service type 
         SERVICE_DEMAND_START,      // start type 
         SERVICE_ERROR_NORMAL,      // error control type 
-        szPath,                    // path to service's binary 
+        (string(szPath) + " " + mainPath + " " + iniFileName).c_str(),                    // path to service's binary 
         NULL,                      // no load ordering group 
         NULL,                      // no tag identifier 
         NULL,                      // no dependencies 
         NULL,                      // LocalSystem account 
         NULL);                     // no password 
 
-	std::cout << "InstSvc4";
+	//std::cout << "InstSvc4\n" ;
     if (schService == NULL) 
     {
-        printf("CreateService failed (%d)\n", GetLastError()); 
+		std::cout << "CreateService failed (" << GetLastError() << ")" << std::endl;
         CloseServiceHandle(schSCManager);
         return;
     }
-    else printf("Service installed successfully\n"); 
+    else std::cout << "Service installed successfully" << std::endl; 
 
     CloseServiceHandle(schService); 
     CloseServiceHandle(schSCManager);
@@ -342,7 +282,7 @@ VOID WINAPI SvcMain( DWORD dwArgc, LPTSTR *lpszArgv )
     // Register the handler function for the service
 
     gSvcStatusHandle = RegisterServiceCtrlHandler( 
-        SVCNAME, 
+		myName.c_str(),
         SvcCtrlHandler);
 
     if( !gSvcStatusHandle )
@@ -407,62 +347,55 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
 
 	ReportSvcStatus(SERVICE_RUNNING, NO_ERROR, 0);
 
-	STARTUPINFO info = { sizeof(info) };
 	PROCESS_INFORMATION processInfo;
 	
-	BOOST_LOG_SEV(my_logger_main, lt::info) << "- MA - Provo ad avviare l'eseguibile: " << (char*)configurationMap["LineToLaunchExecutable"].c_str();
-	BOOST_LOG_SEV(my_logger_main, lt::info) << "- MA - Con questi parametri: " << (char*)configurationMap["LineToLaunchOptions"].c_str();
+	BOOST_LOG_SEV(my_logger_main, lt::info) << "- MA - Trying to start executable: " << configurationMap["LineToLaunchExecutable"];
+	BOOST_LOG_SEV(my_logger_main, lt::info) << "- MA - Launch params: " << configurationMap["LineToLaunchOptions"];
 	//if (CreateProcess((char*)configurationMap["LineToLaunchExecutable"].c_str(), (char*)configurationMap["LineToLaunchOptions"].c_str(), NULL, NULL, TRUE, 0, NULL, NULL, &info, &processInfo))
+	SECURITY_ATTRIBUTES sa;
+	sa.nLength = sizeof(sa);
+	sa.lpSecurityDescriptor = NULL;
+	sa.bInheritHandle = TRUE;
+	string fname_stdout = mainPath + "/LOGS/" + myName.c_str() + string("_stdout.log");
+	string fname_stderr = mainPath + "/LOGS/" + myName.c_str() + string("_stderr.log");
 
-	if (CreateProcess(NULL, (char*)configurationMap["LineToLaunchExecutable"].c_str(), NULL, NULL, TRUE, 0, NULL, NULL, &info, &processInfo))
+	HANDLE h_stdout = CreateFile(_T(fname_stdout.c_str()),
+		FILE_APPEND_DATA,
+		FILE_SHARE_WRITE | FILE_SHARE_READ,
+		&sa,
+		OPEN_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+
+
+	HANDLE h_stderr = CreateFile(_T(fname_stderr.c_str()),
+		FILE_APPEND_DATA,
+		FILE_SHARE_WRITE | FILE_SHARE_READ,
+		&sa,
+		OPEN_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+
+	STARTUPINFO startupInfo;
+	BOOL ret = FALSE;
+	DWORD flags = CREATE_NO_WINDOW;
+
+	ZeroMemory(&processInfo, sizeof(PROCESS_INFORMATION));
+	ZeroMemory(&startupInfo, sizeof(STARTUPINFO));
+	startupInfo.cb = sizeof(STARTUPINFO);
+	startupInfo.dwFlags |= STARTF_USESTDHANDLES;
+	startupInfo.hStdInput = NULL;
+	startupInfo.hStdError = h_stderr;
+	startupInfo.hStdOutput = h_stdout;
+
+	if (CreateProcess(NULL, (char*)(configurationMap["LineToLaunchExecutable"] + " " + configurationMap["LineToLaunchOptions"]).c_str(), NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo))
 	{
-		BOOST_LOG_SEV(my_logger_main, lt::info) << "- MA - Eseguibile avviato " << processInfo.dwProcessId;
+		BOOST_LOG_SEV(my_logger_main, lt::info) << "- MA - Executable started with pid: " << processInfo.dwProcessId;
 		// ::WaitForSingleObject(processInfo.hProcess, INFINITE);
 	}
 	else {
-		BOOST_LOG_SEV(my_logger_main, lt::error) << "- MA - Eseguibile non avviato";
+		BOOST_LOG_SEV(my_logger_main, lt::error) << "- MA - Executable not started";
 	}
-
-	/*
-	
-	HANDLE StdInHandles[2];
-	HANDLE StdOutHandles[2];
-	HANDLE StdErrHandles[2];
-
-	CreatePipe(&StdInHandles[0], &StdInHandles[1], NULL, 4096);
-	CreatePipe(&StdOutHandles[0], &StdOutHandles[1], NULL, 4096);
-	CreatePipe(&StdErrHandles[0], &StdErrHandles[1], NULL, 4096);
-
-
-	STARTUPINFO si;   
-	memset(&si, 0, sizeof(si)); 
-
-	si.dwFlags = STARTF_USESTDHANDLES;
-	si.hStdInput = StdInHandles[0]; 
-	si.hStdOutput = StdOutHandles[1]; 
-	si.hStdError = StdErrHandles[1];
-
-	PROCESS_INFORMATION pi;
-
-	CreateProcess("Prova", "c:\\Windows\\System32\\notepad.exe", NULL, NULL, FALSE, CREATE_NO_WINDOW | DETACHED_PROCESS, "", "", &si, &pi);
-	DWORD dwRead, dwWritten; 
-	CHAR chBuf[BUFSIZE];
-	BOOL bSuccess = FALSE;
-	HANDLE hParentStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-	for (;;)
-	{
-		bSuccess = ReadFile(StdOutHandles[0], chBuf, BUFSIZE, &dwRead, NULL);
-		if (!bSuccess || dwRead == 0) break;
-		BOOST_LOG_SEV(my_logger_main, lt::info) << chBuf;
-		//bSuccess = WriteFile(hParentStdOut, chBuf,
-		//	dwRead, &dwWritten, NULL);
-		if (!bSuccess) break;
-	}*/
-	/*
-
-	CODICE_APPLICAZIONE
-	*/
-	// std::this_thread::sleep_for(std::chrono::seconds(1));
 		
 	BOOST_LOG_SEV(my_logger_main, lt::info) << "- MA - Service running with pid: " << _getpid();
 
@@ -583,13 +516,13 @@ VOID SvcReportEvent(LPTSTR szFunction)
     LPCTSTR lpszStrings[2];
     TCHAR Buffer[80];
 
-    hEventSource = RegisterEventSource(NULL, SVCNAME);
+    hEventSource = RegisterEventSource(NULL, myName.c_str());
 
     if( NULL != hEventSource )
     {
         StringCchPrintf(Buffer, 80, TEXT("%s failed with %d"), szFunction, GetLastError());
 
-        lpszStrings[0] = SVCNAME;
+        lpszStrings[0] = myName.c_str();
         lpszStrings[1] = Buffer;
 
         ReportEvent(hEventSource,        // event log handle

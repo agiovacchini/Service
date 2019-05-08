@@ -10,7 +10,7 @@ Building requires [Visual Studio Express](https://www.visualstudio.com/vs/expres
 Create a INI file called like the executable and located in the same folder with a structure like this:
 ```ini
 [Service]
-Name=Test
+Name=Service
 
 [LineToLaunch]
 Executable=c:\Service\Service.exe

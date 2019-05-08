@@ -13,13 +13,14 @@ Create a INI file called like the executable and located in the same folder with
 Name=Test
 
 [LineToLaunch]
-Executable=c:\j2sdk1.8.0_45\jre\bin\Test.exe
-Options=-classpath "c:\Test\jars\*" it.TestClass 
+Executable=c:\Test\Test.exe
+Options=-classpath "c:\Test\*" it.TestClass 
+Path=c:\Test
 ```
 ### Service installation
 Launch service.exe with this parameters:
 ```bat
 Service.exe install execution_path ini_file_name
-ex: Service.exe install C:\ws-visualstudio\Service\x64\Debug Test.ini
+ex: Service.exe install c:\Test Test.ini
 ```
 Ini file must be inside execution_path

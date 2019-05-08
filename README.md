@@ -13,14 +13,14 @@ Create a INI file called like the executable and located in the same folder with
 Name=Test
 
 [LineToLaunch]
-Executable=c:\Test\Test.exe
-Options=-classpath "c:\Test\*" it.TestClass 
-Path=c:\Test
+Executable=c:\Service\Service.exe
+Options=-classpath "c:\Service\*" it.TestClass 
+Path=c:\Service
 ```
 ### Service installation
 Launch service.exe with this parameters:
 ```bat
 Service.exe install execution_path ini_file_name
-ex: Service.exe install c:\Test Test.ini
+ex: Service.exe install c:\Service Service.ini
 ```
 Ini file must be inside execution_path
